@@ -1,11 +1,17 @@
 import { Component, OnInit } from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import {
+  UntypedFormBuilder,
+  UntypedFormGroup,
+  Validators,
+} from '@angular/forms';
 import { STEPPER_GLOBAL_OPTIONS } from '@angular/cdk/stepper';
 import { CheckoutService } from './checkout.service';
 import { ProductCheckout } from '../products/product.interface';
-import { Observable } from 'rxjs';
+import { Observable, switchMap } from 'rxjs';
 import { CartService } from './cart.service';
 import { map, shareReplay } from 'rxjs/operators';
+import { OrdersService } from '../admin/orders/orders.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-cart',
@@ -29,7 +35,9 @@ export class CartComponent implements OnInit {
   constructor(
     private readonly fb: UntypedFormBuilder,
     private readonly checkoutService: CheckoutService,
-    private readonly cartService: CartService
+    private readonly cartService: CartService,
+    private readonly orderService: OrdersService,
+    private router: Router
   ) {}
 
   get fullName(): string {
@@ -73,6 +81,23 @@ export class CartComponent implements OnInit {
 
     this.totalInCart$ = this.cartService.totalInCart$;
     this.cartEmpty$ = this.totalInCart$.pipe(map((count) => count > 0));
+  }
+
+  createOrder() {
+    console.log(this.shippingInfo.value);
+    this.products$
+      .pipe(
+        switchMap((products) =>
+          this.orderService.createOrder({
+            address: this.shippingInfo.value,
+            items: products,
+            status: 'ordered',
+          })
+        )
+      )
+      .subscribe(() => {
+        this.router.navigate(['']);
+      });
   }
 
   add(id: string): void {
